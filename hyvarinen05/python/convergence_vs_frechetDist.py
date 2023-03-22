@@ -22,17 +22,18 @@ def frechet_distance(mean_true, cov_true, mean_estimated, cov_estimated):
 
 dim = 2
 n = 1000
-learning_rate = 0.1
+learning_rate = 0.01
 pi = torch.from_numpy(np.array([np.pi]))
 max_steps = 100000
-max_mean = 20
+max_mean = 17
 
 
 # init our target distribution params (mean and covariance)
 
 mean_true = np.array([random.randint(1, max_mean) for x in range(dim)])
-A = np.random.uniform(low=0.1, high=3, size=(dim, dim))
+A = np.random.rand(dim, dim)
 cov_true = np.dot(A, A.transpose())
+
 
 cov_true_tensor = torch.from_numpy(cov_true).to(device)
 mean_true_tensor = torch.from_numpy(mean_true).to(device)
@@ -55,7 +56,7 @@ cov_estimated = torch.matmul(L.mT, L).detach().cpu().numpy()
 mean_estimated = mean.detach().cpu().numpy().squeeze()
 
 frechet_dist = frechet_distance(mean_true, cov_true, mean_estimated, cov_estimated)
-
+eval, evec = np.linalg.eig(cov_true)
 
 # Note that this loss requires the hessian which is expensive to compute
 def scoreMatchingLoss(grad, hessian):
@@ -87,7 +88,7 @@ for t in range(max_steps):
             print("mean norm error {}".format(mean_norm_err))
         cov_estimated = torch.matmul(L.mT, L).detach().cpu().numpy()
         mean_estimated = mean.detach().cpu().numpy().squeeze()
-        if matrix_norm_err < 0.5 and mean_norm_err < 0.1:       
+        if matrix_norm_err < 1 and mean_norm_err < 0.4:       
             break
 
 if t < max_steps-10:
@@ -95,6 +96,6 @@ if t < max_steps-10:
 else:
     converged = False 
 
-fo.write("{} {} {}\n".format(frechet_dist, converged, t))
+fo.write("{} {} {} {} {} {}\n".format(np.max(eval)/np.min(eval), eval[0], eval[1], frechet_dist, converged, t))
 fo.close()
 
