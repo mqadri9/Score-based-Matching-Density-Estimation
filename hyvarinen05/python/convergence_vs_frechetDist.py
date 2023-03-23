@@ -24,7 +24,7 @@ dim = 2
 n = 1000
 learning_rate = 0.01
 pi = torch.from_numpy(np.array([np.pi]))
-max_steps = 100000
+max_steps = 200000
 max_mean = 17
 
 
