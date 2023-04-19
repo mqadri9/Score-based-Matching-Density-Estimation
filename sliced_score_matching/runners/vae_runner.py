@@ -36,7 +36,7 @@ class VAERunner():
                                  num_workers=2)
 
         save_path = os.path.join(self.args.log, 'samples', 'test_images')
-        #fid.generate_testset_fid(test_loader, save_path, True, 2048)
+        fid.generate_testset_fid(test_loader, save_path, True, 2048)
 
     def get_optimizer(self, parameters):
         if self.config.optim.optimizer == 'Adam':
@@ -209,7 +209,7 @@ class VAERunner():
                             # else:
                             #     return 0
 
-                if (step + 1) % 10000 == 0:
+                if (step + 1) % 10 == 0:
                     if self.config.training.algo == 'vae':
                         states = [
                             encoder.state_dict(),
