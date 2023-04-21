@@ -16,6 +16,7 @@ from models.vae import Encoder, Decoder, ImplicitEncoder, MLPDecoder, MLPEncoder
 import itertools
 from evaluations import fid
 import sys
+from tqdm import tqdm 
 
 __all__ = ['VAERunner']
 
@@ -119,7 +120,7 @@ class VAERunner():
         validation_losses = []
         recon_type = 'gaussian'
 
-        for _ in range(self.config.training.n_epochs):
+        for _ in tqdm(range(self.config.training.n_epochs)):
             for _, (X, y) in enumerate(dataloader):
                 decoder.train()
                 X = X.to(self.config.device)
@@ -147,7 +148,7 @@ class VAERunner():
                     loss.backward()
                     optimizer.step()
 
-                if step % 10 == 0:
+                if step % 100 == 0:
                     try:
                         test_X, _ = next(test_iter)
                     except:
@@ -209,7 +210,7 @@ class VAERunner():
                             # else:
                             #     return 0
 
-                if (step + 1) % 10 == 0:
+                if (step + 1) % 10000 == 0:
                     if self.config.training.algo == 'vae':
                         states = [
                             encoder.state_dict(),
@@ -255,7 +256,6 @@ class VAERunner():
         save_image(image_grid, 'image_grid.png')
 
     def test_fid(self, iter=0):
-        self.config.input_dim = self.config.data.image_size ** 2 * self.config.data.channels
         states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'), map_location=self.config.device)
         decoder = Decoder(self.config).to(self.config.device)
         decoder.eval()
