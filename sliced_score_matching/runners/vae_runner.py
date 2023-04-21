@@ -37,7 +37,8 @@ class VAERunner():
                                  num_workers=2)
 
         save_path = os.path.join(self.args.log, 'samples', 'test_images')
-        fid.generate_testset_fid(test_loader, save_path, True, 2048)
+        if args.test_fid:       
+            fid.generate_testset_fid(test_loader, save_path, True, 2048)
 
     def get_optimizer(self, parameters):
         if self.config.optim.optimizer == 'Adam':
