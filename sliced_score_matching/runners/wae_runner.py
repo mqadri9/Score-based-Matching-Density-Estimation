@@ -15,6 +15,7 @@ from evaluations import fid
 from losses.wae import wae_kernel, wae_ssm
 from models.wae import MLPScore, MLPEncoder, MLPDecoder, Score, Encoder, Decoder
 
+from tqdm import tqdm 
 __all__ = ['WAERunner']
 
 
@@ -120,7 +121,7 @@ class WAERunner():
         best_validation_loss = np.inf
         validation_losses = []
 
-        for _ in range(self.config.training.n_epochs):
+        for _ in tqdm(range(self.config.training.n_epochs)):
             for _, (X, y) in enumerate(dataloader):
                 decoder.train()
                 X = X.to(self.config.device)
@@ -193,7 +194,7 @@ class WAERunner():
                     with torch.no_grad():
                         z = torch.randn(100, self.config.model.z_dim, device=X.device)
                         decoder.eval()
-                        if self.config.data.dataset == 'CELEBA':
+                        if self.config.data.dataset == 'CELEBA' or self.config.data.dataset == "CIFAR10":
                             samples = decoder(z)
                             samples = samples.view(100, self.config.data.channels, self.config.data.image_size,
                                                    self.config.data.image_size)
@@ -239,8 +240,8 @@ class WAERunner():
                     torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
 
                 step += 1
-                if step >= self.config.training.n_iters:
-                    return 0
+                #if step >= self.config.training.n_iters:
+                #    return 0
 
     def test(self):
         states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'), map_location=self.config.device)

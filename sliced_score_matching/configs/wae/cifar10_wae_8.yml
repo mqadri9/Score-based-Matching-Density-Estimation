@@ -1,5 +1,5 @@
 training:
-  batch_size: 2048
+  batch_size: 128
   n_epochs: 3000
   n_iters: 100000
   algo: "ssm"

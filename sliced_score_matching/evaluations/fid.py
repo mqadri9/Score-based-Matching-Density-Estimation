@@ -278,7 +278,7 @@ def calculate_data_statics(path, save_path, batch_size, cuda, dims):
     model = InceptionV3([block_idx])
     if cuda:
         model.to("cuda")
-    print(save_path)
+    
     m, s = _compute_statistics_of_path(path, model, batch_size, dims, cuda)
     np.savez(os.path.join(save_path, 'cifar10_test.npz'), mu=m, sigma=s)
 

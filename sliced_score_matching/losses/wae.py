@@ -1,5 +1,5 @@
 import torch
-from losses.sliced_sm import sliced_score_matching, sliced_score_estimation, sliced_score_estimation_vr
+from losses.sliced_sm import  sliced_score_estimation_vr
 import numpy as np
 
 
