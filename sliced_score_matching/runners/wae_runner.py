@@ -24,6 +24,21 @@ class WAERunner():
         self.args = args
         self.config = config
 
+        transform = transforms.Compose([
+            transforms.Resize(self.config.data.image_size),
+            transforms.ToTensor()
+        ])
+        if self.config.data.dataset == 'CIFAR10':
+            test_dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=False, download=True,
+                                   transform=transform)
+
+        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False,
+                                 num_workers=2)
+
+        save_path = os.path.join(self.args.log, 'samples', 'test_images')
+        if args.test_fid:       
+            fid.generate_testset_fid(test_loader, save_path, True, 2048)
+
     def get_optimizer(self, parameters):
         if self.config.optim.optimizer == 'Adam':
             return optim.Adam(parameters, lr=self.config.optim.lr, weight_decay=self.config.optim.weight_decay,
@@ -34,6 +49,7 @@ class WAERunner():
             return optim.SGD(parameters, lr=self.config.optim.lr, momentum=0.9)
         else:
             raise NotImplementedError('Optimizer {} not understood.'.format(self.config.optim.optimizer))
+
 
     def train(self):
         transform = transforms.Compose([
@@ -264,7 +280,51 @@ class WAERunner():
 
         save_image(image_grid, 'image_grid.png')
 
-    def test_fid(self):
+    def test_fid(self, iter=0):
+        states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'), map_location=self.config.device)
+        decoder = Decoder(self.config).to(self.config.device)
+        decoder.eval()
+
+        if self.config.training.algo == 'ssm':
+            score = Score(self.config).to(self.config.device)
+            encoder = Encoder(self.config).to(self.config.device)
+            encoder.load_state_dict(states[0])
+            decoder.load_state_dict(states[1])
+            score.load_state_dict(states[2])
+        elif self.config.training.algo in ['spectral', 'stein']:
+            from models.kernel_score_estimators import SpectralScoreEstimator, SteinScoreEstimator
+            encoder = Encoder(self.config).to(self.config.device)
+            encoder.load_state_dict(states[0])
+            decoder.load_state_dict(states[1])
+
+        all_samples = []
+        logging.info("Generating samples")
+        for i in range(100):
+            with torch.no_grad():
+                z = torch.randn(100, self.config.model.z_dim, device=self.config.device)
+                samples = decoder(z)
+                samples = samples.view(100, self.config.data.channels, self.config.data.image_size,
+                                        self.config.data.image_size)
+                all_samples.extend(samples / 2. + 0.5)
+
+        if not os.path.exists(os.path.join(self.args.log, 'samples', 'raw_images')):
+            os.makedirs(os.path.join(self.args.log, 'samples', 'raw_images'))
+        logging.info("Images generated. Saving images")
+        for i, image in enumerate(all_samples):
+            save_image(image, os.path.join(self.args.log, 'samples', 'raw_images', '{}.png'.format(i)))
+        logging.info("Generating fid statistics")
+        fid.calculate_data_statics(os.path.join(self.args.log, 'samples', 'raw_images'),
+                                    os.path.join(self.args.log, 'samples'), 50, True, 2048)
+        logging.info("Statistics generated.")
+            
+        fid_number = fid.calculate_fid_given_paths([
+            'run/datasets/cifar10_fid/samples/cifar10_test.npz',
+            os.path.join(self.args.log, 'samples', 'cifar10_test.npz')]
+            , 50, True, 2048)
+        logging.info("FID: {}".format(fid_number))
+
+
+    def test_fid2(self):
         assert self.config.data.dataset == 'CELEBA'
         transform = transforms.Compose([
             transforms.Resize(self.config.data.image_size),
@@ -412,76 +472,3 @@ class WAERunner():
                         , 50, True, 2048)
                     logging.info("Number of iters: {}0k, FID: {}".format(iter, fid_number))
 
-    def test_ais(self):
-        assert self.config.data.dataset == 'MNIST'
-        transform = transforms.Compose([
-            transforms.Resize(self.config.data.image_size),
-            transforms.ToTensor()
-        ])
-
-        if self.config.data.dataset == 'CIFAR10':
-            test_dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=False, download=True,
-                                   transform=transform)
-        elif self.config.data.dataset == 'MNIST':
-            test_dataset = MNIST(os.path.join(self.args.run, 'datasets', 'mnist'), train=False, download=True,
-                                 transform=transform)
-        elif self.config.data.dataset == 'CELEBA':
-            dataset = ImageFolder(root=os.path.join(self.args.run, 'datasets', 'celeba'),
-                                  transform=transforms.Compose([
-                                      transforms.CenterCrop(140),
-                                      transforms.Resize(self.config.data.image_size),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                                  ]))
-            num_items = len(dataset)
-            indices = list(range(num_items))
-            random_state = np.random.get_state()
-            np.random.seed(2019)
-            np.random.shuffle(indices)
-            np.random.set_state(random_state)
-            test_indices = indices[int(0.8 * num_items):]
-            test_dataset = Subset(dataset, test_indices)
-
-        test_loader = DataLoader(test_dataset, batch_size=self.config.training.batch_size, shuffle=False,
-                                 num_workers=2)
-
-        self.config.input_dim = self.config.data.image_size ** 2 * self.config.data.channels
-
-        states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'), map_location=self.config.device)
-        decoder = MLPDecoder(self.config).to(self.config.device)
-        if self.config.training.algo == 'ssm':
-            score = MLPScore(self.config).to(self.config.device)
-            encoder = MLPEncoder(self.config).to(self.config.device)
-            encoder.load_state_dict(states[0])
-            decoder.load_state_dict(states[1])
-            score.load_state_dict(states[2])
-        elif self.config.training.algo in ['spectral', 'stein']:
-            encoder = MLPEncoder(self.config).to(self.config.device)
-            encoder.load_state_dict(states[0])
-            decoder.load_state_dict(states[1])
-
-        def recon_energy(X, z):
-            x = decoder(z)
-            recon = F.binary_cross_entropy(input=x, target=X, reduction='none')
-            recon = recon.sum(dim=[1, 2, 3])
-            return recon
-
-        from evaluations.ais import AISLatentVariableModels
-        ais = AISLatentVariableModels(recon_energy,
-                                      self.config.model.z_dim,
-                                      self.config.device, n_Ts=1000)
-
-        total_l = 0.
-        total_n = 0
-        for _, (X, y) in enumerate(test_loader):
-            X = X.to(self.config.device)
-            if self.config.data.dataset == 'CELEBA':
-                X = X + (torch.rand_like(X) - 0.5) / 128.
-            elif self.config.data.dataset == 'MNIST':
-                eps = torch.rand_like(X)
-                X = (eps <= X).float()
-
-            ais_lb = ais.ais(X).mean().item()
-            total_l += ais_lb * X.shape[0]
-            total_n += X.shape[0]
-            print('current ais lb: {}, mean ais lb: {}'.format(ais_lb, total_l / total_n))
