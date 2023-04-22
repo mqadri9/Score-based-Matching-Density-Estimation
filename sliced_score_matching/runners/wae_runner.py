@@ -150,7 +150,7 @@ class WAERunner():
                     loss.backward()
                     optimizer.step()
 
-                if step % 10 == 0:
+                if step % 100 == 0:
                     try:
                         test_X, _ = next(test_iter)
                     except:
