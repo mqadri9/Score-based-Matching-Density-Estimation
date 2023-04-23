@@ -46,8 +46,8 @@ class WAERunner():
                                  num_workers=2)
 
         save_path = os.path.join(self.args.log, 'samples', 'test_images')
-        if args.test_fid:       
-            fid.generate_testset_fid(test_loader, save_path, True, 2048)
+        #if args.test_fid:       
+        #    fid.generate_testset_fid(test_loader, save_path, True, 2048)
 
     def get_optimizer(self, parameters):
         if self.config.optim.optimizer == 'Adam':
@@ -284,8 +284,8 @@ class WAERunner():
         logging.info("Statistics generated.")
             
         fid_number = fid.calculate_fid_given_paths([
-            'run/datasets/celeba140_fid/samples/celeba_test.npz',
-            os.path.join(self.args.log, 'samples', 'celeba_test.npz')]
+            'run/datasets/celeba140_fid/samples/celeba140_test.npz',
+            os.path.join(self.args.log, 'samples', 'celeba140_test.npz')]
             , 50, True, 2048)
         logging.info("FID: {}".format(fid_number))
 
