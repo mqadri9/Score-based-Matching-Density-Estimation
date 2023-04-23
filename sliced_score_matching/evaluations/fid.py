@@ -255,10 +255,10 @@ def calculate_fid_given_paths(paths, batch_size, cuda, dims):
 
 def generate_testset_fid(test_loader, save_path, cuda, dims):
     print("GENERATING TEST SET DISTRIBUTION")
-    path = 'run/datasets/cifar10_fid'
+    path = 'run/datasets/celeba140_fid'
     if not os.path.exists(path):
         os.makedirs(path)
-    path2 = 'run/datasets/cifar10_fid/samples/raw_images'
+    path2 = 'run/datasets/celeba140_fid/samples/raw_images'
     if not os.path.exists(path2):
         os.makedirs(path2)
 
@@ -278,9 +278,9 @@ def calculate_data_statics(path, save_path, batch_size, cuda, dims):
     model = InceptionV3([block_idx])
     if cuda:
         model.to("cuda")
-    
+
     m, s = _compute_statistics_of_path(path, model, batch_size, dims, cuda)
-    np.savez(os.path.join(save_path, 'cifar10_test.npz'), mu=m, sigma=s)
+    np.savez(os.path.join(save_path, 'celeba140_test.npz'), mu=m, sigma=s)
 
 
 if __name__ == '__main__':

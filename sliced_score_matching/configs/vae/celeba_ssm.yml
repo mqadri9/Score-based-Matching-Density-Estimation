@@ -5,17 +5,16 @@ training:
   algo: "ssm"
 
 data:
-  dataset: "CIFAR10"
+  dataset: "CELEBA"
   image_size: 64
   channels: 3
 
 model:
   n_particles: 1
-  lam: 10
-  z_dim: 16
-  eps_dim: 16
-  nef: 32
-  ndf: 32
+  z_dim: 32
+  eps_dim: 32
+  nef: 64
+  ndf: 64
 
 optim:
   weight_decay: 0.000

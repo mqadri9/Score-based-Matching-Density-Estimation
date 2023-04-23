@@ -109,7 +109,7 @@ def main():
     print(">" * 80)
     print(config)
     print("<" * 80)
-    
+    assert config.data.dataset == 'CELEBA'
     try:
         runner = eval(args.runner)(args, config)
         print(args.test_fid)

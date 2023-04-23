@@ -24,13 +24,23 @@ class WAERunner():
         self.args = args
         self.config = config
 
-        transform = transforms.Compose([
-            transforms.Resize(self.config.data.image_size),
-            transforms.ToTensor()
-        ])
-        if self.config.data.dataset == 'CIFAR10':
-            test_dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=False, download=True,
-                                   transform=transform)
+        dataset = ImageFolder(root=os.path.join(self.args.run, 'datasets', 'celeba'),
+                                transform=transforms.Compose([
+                                    transforms.CenterCrop(140),
+                                    transforms.Resize(self.config.data.image_size),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                                ]))
+        num_items = len(dataset)
+        indices = list(range(num_items))
+        random_state = np.random.get_state()
+        np.random.seed(2019)
+        np.random.shuffle(indices)
+        np.random.set_state(random_state)
+        train_indices, test_indices = indices[:int(num_items * 0.7)], indices[
+                                                                        int(num_items * 0.7):int(num_items * 0.8)]
+        test_dataset = Subset(dataset, test_indices)
+        dataset = Subset(dataset, train_indices)
 
         test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False,
                                  num_workers=2)
@@ -57,42 +67,23 @@ class WAERunner():
             transforms.ToTensor()
         ])
 
-        if self.config.data.dataset == 'CIFAR10':
-            dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=True, download=True,
-                              transform=transform)
-            test_dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=False, download=True,
-                                   transform=transform)
-        elif self.config.data.dataset == 'MNIST':
-            dataset = MNIST(os.path.join(self.args.run, 'datasets', 'mnist'), train=True, download=True,
-                            transform=transform)
-            num_items = len(dataset)
-            indices = list(range(num_items))
-            random_state = np.random.get_state()
-            np.random.seed(2019)
-            np.random.shuffle(indices)
-            np.random.set_state(random_state)
-            train_indices, test_indices = indices[:int(num_items * 0.8)], indices[int(num_items * 0.8):]
-            test_dataset = Subset(dataset, test_indices)
-            dataset = Subset(dataset, train_indices)
-
-        elif self.config.data.dataset == 'CELEBA':
-            dataset = ImageFolder(root=os.path.join(self.args.run, 'datasets', 'celeba'),
-                                  transform=transforms.Compose([
-                                      transforms.CenterCrop(140),
-                                      transforms.Resize(self.config.data.image_size),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                                  ]))
-            num_items = len(dataset)
-            indices = list(range(num_items))
-            random_state = np.random.get_state()
-            np.random.seed(2019)
-            np.random.shuffle(indices)
-            np.random.set_state(random_state)
-            train_indices, test_indices = indices[:int(num_items * 0.7)], indices[
-                                                                          int(num_items * 0.7):int(num_items * 0.8)]
-            test_dataset = Subset(dataset, test_indices)
-            dataset = Subset(dataset, train_indices)
+        dataset = ImageFolder(root=os.path.join(self.args.run, 'datasets', 'celeba'),
+                                transform=transforms.Compose([
+                                    transforms.CenterCrop(140),
+                                    transforms.Resize(self.config.data.image_size),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                                ]))
+        num_items = len(dataset)
+        indices = list(range(num_items))
+        random_state = np.random.get_state()
+        np.random.seed(2019)
+        np.random.shuffle(indices)
+        np.random.set_state(random_state)
+        train_indices, test_indices = indices[:int(num_items * 0.7)], indices[
+                                                                        int(num_items * 0.7):int(num_items * 0.8)]
+        test_dataset = Subset(dataset, test_indices)
+        dataset = Subset(dataset, train_indices)
 
         dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=4)
         test_loader = DataLoader(test_dataset, batch_size=self.config.training.batch_size, shuffle=True,
@@ -143,9 +134,6 @@ class WAERunner():
                 X = X.to(self.config.device)
                 if self.config.data.dataset == 'CELEBA':
                     X = X + (torch.rand_like(X) - 0.5) / 128.
-                elif self.config.data.dataset == 'MNIST':
-                    eps = torch.rand_like(X)
-                    X = (eps <= X).float()
 
                 if self.config.training.algo == 'ssm':
                     encoder.train()
@@ -218,12 +206,6 @@ class WAERunner():
                             image_grid = torch.clamp(image_grid / 2. + 0.5, 0.0, 1.0)
                             data_grid = make_grid(X[:100], 10)
                             data_grid = torch.clamp(data_grid / 2. + 0.5, 0.0, 1.0)
-                        elif self.config.data.dataset == 'MNIST':
-                            samples = decoder(z)
-                            samples = samples.view(100, self.config.data.channels, self.config.data.image_size,
-                                                   self.config.data.image_size)
-                            image_grid = make_grid(samples, 10)
-                            data_grid = make_grid(X[:100], 10)
 
                         tb_logger.add_image('samples', image_grid, global_step=step)
                         tb_logger.add_image('data', data_grid, global_step=step)
@@ -256,8 +238,8 @@ class WAERunner():
                     torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
 
                 step += 1
-                #if step >= self.config.training.n_iters:
-                #    return 0
+                if step >= self.config.training.n_iters:
+                    return 0
 
     def test(self):
         states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'), map_location=self.config.device)
@@ -318,8 +300,8 @@ class WAERunner():
         logging.info("Statistics generated.")
             
         fid_number = fid.calculate_fid_given_paths([
-            'run/datasets/cifar10_fid/samples/cifar10_test.npz',
-            os.path.join(self.args.log, 'samples', 'cifar10_test.npz')]
+            'run/datasets/celeba140_fid/samples/celeba_test.npz',
+            os.path.join(self.args.log, 'samples', 'celeba_test.npz')]
             , 50, True, 2048)
         logging.info("FID: {}".format(fid_number))
 

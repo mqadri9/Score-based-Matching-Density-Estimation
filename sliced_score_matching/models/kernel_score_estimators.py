@@ -53,9 +53,9 @@ class SpectralScoreEstimator(ScoreEstimator):
         self._n_eigen = n_eigen
         self._eta = eta
         self._n_eigen_threshold = n_eigen_threshold
-        config = tf.ConfigProto()
+        config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
-        tf.enable_eager_execution(config=config)
+        tf.compat.v1.enable_eager_execution(config=config)
 
     def nystrom_ext(self, samples, x, eigen_vectors, eigen_values, kernel_width):
         # samples: [..., M, x_dim]
@@ -94,7 +94,7 @@ class SpectralScoreEstimator(ScoreEstimator):
             Kq += self._eta * torch.eye(M, device=samples.device)
 
         with tf.device("/cpu:0"):
-            eigen_values, eigen_vectors = tf.self_adjoint_eig(Kq.cpu().numpy())
+            eigen_values, eigen_vectors = tf.compat.v1.self_adjoint_eig(Kq.cpu().numpy())
 
         eigen_values = torch.tensor(eigen_values.numpy(), device=samples.device)
         eigen_vectors = torch.tensor(eigen_vectors.numpy(), device=samples.device)

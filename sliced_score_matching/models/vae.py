@@ -147,8 +147,8 @@ class Decoder(nn.Module):
     def forward(self, inputs):
         h = self.fc(inputs)
         h = h.view(-1, self.ndf * 8, 4, 4)
-        h = self.main(h)
         
+        h = self.main(h)
         mean = h.view(-1, self.channels, self.image_size, self.image_size)
         return mean, self.log_std
 

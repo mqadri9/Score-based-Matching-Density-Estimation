@@ -8,7 +8,7 @@ import numpy as np
 
 def elbo(encoder, decoder, X, type='gaussian'):
     mean_z, logstd_z = encoder(X)
-
+    
     kl = -logstd_z + ((logstd_z * 2).exp() + mean_z ** 2) / 2. - 0.5
     kl = kl.sum(dim=-1)
 
