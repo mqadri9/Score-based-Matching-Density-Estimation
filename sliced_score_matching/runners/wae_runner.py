@@ -241,29 +241,13 @@ class WAERunner():
                 if step >= self.config.training.n_iters:
                     return 0
 
-    def test(self):
-        states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'), map_location=self.config.device)
-        decoder = MLPDecoder(self.config).to(self.config.device) if self.config.data.dataset == 'MNIST' \
-            else Decoder(self.config).to(self.config.device)
-        decoder.eval()
-        decoder.load_state_dict(states[1])
-        z = torch.randn(100, self.config.model.z_dim, device=self.config.device)
-        if self.config.data.dataset == 'CELEBA':
-            samples = decoder(z)
-            samples = samples.view(100, self.config.data.channels, self.config.data.image_size,
-                                   self.config.data.image_size)
-            image_grid = make_grid(samples, 10)
-            image_grid = torch.clamp(image_grid / 2. + 0.5, 0.0, 1.0)
-        elif self.config.data.dataset == 'MNIST':
-            samples = decoder(z)
-            samples = samples.view(100, self.config.data.channels, self.config.data.image_size,
-                                   self.config.data.image_size)
-            image_grid = make_grid(samples, 10)
 
-        save_image(image_grid, 'image_grid.png')
-
-    def test_fid(self, iter=0):
-        states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'), map_location=self.config.device)
+    def test_fid(self, checkpoint_id):
+        if checkpoint_id !=0:
+            checkpoint_name = 'checkpoint{}k.pth'.format(checkpoint_id)
+        else:
+            checkpoint_name = 'checkpoint.pth'.format(checkpoint_id)
+        states = torch.load(os.path.join(self.args.log, checkpoint_name), map_location=self.config.device)
         decoder = Decoder(self.config).to(self.config.device)
         decoder.eval()
 

@@ -27,6 +27,7 @@ def parse_args_and_config():
     parser.add_argument('--dsm_sigma', type=float, default=0.16, help='Sigma for DSM tuning')
     parser.add_argument('--scalability_dim', type=int, default=10, help='Dimension for scalability testing')
     parser.add_argument('--load_path', type=str, default='', help='Path to state dict for resuming training')
+    parser.add_argument('--checkpoint_id', type=int, default=0, help='checkpoint_id')
 
     args = parser.parse_args()
     run_id = str(os.getpid())
@@ -114,7 +115,7 @@ def main():
         runner = eval(args.runner)(args, config)
         print(args.test_fid)
         if args.test_fid:
-            runner.test_fid()
+            runner.test_fid(config.checkpoint_id)
         else:
             if not args.test:
                 runner.train()

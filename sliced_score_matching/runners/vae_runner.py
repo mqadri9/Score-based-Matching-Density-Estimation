@@ -258,8 +258,12 @@ class VAERunner():
                     return 0
 
 
-    def test_fid(self):
-        states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'), map_location=self.config.device)
+    def test_fid(self, checkpoint_id):
+        if checkpoint_id !=0:
+            checkpoint_name = 'checkpoint{}k.pth'.format(checkpoint_id)
+        else:
+            checkpoint_name = 'checkpoint.pth'.format(checkpoint_id)
+        states = torch.load(os.path.join(self.args.log, checkpoint_name), map_location=self.config.device)
         decoder = Decoder(self.config).to(self.config.device)
         decoder.eval()
         if self.config.training.algo == 'vae':
