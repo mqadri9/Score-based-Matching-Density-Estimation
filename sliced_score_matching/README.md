@@ -5,6 +5,7 @@ To train:
   python main.py --runner VAERunner --config vae/celeba_vae.yml
   
 To calculate FID (ID = 10, 40. 70 or 100):
+
   python main.py --runner VAERunner --config vae/celeba.yml --test_fid --checkpoint_id ID
   
  # CELEBA dataset download
