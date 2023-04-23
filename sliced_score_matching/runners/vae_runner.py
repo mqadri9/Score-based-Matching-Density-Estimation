@@ -48,8 +48,8 @@ class VAERunner():
                                  num_workers=2)
 
         save_path = os.path.join(self.args.log, 'samples', 'test_images')
-        if args.test_fid:       
-            fid.generate_testset_fid(test_loader, save_path, True, 2048)
+        #if args.test_fid:       
+        #    fid.generate_testset_fid(test_loader, save_path, True, 2048)
 
     def get_optimizer(self, parameters):
         if self.config.optim.optimizer == 'Adam':
@@ -138,7 +138,7 @@ class VAERunner():
         validation_losses = []
         recon_type = 'gaussian'
 
-        for _ in tqdm(range(self.config.training.n_epochs)):
+        for _ in range(self.config.training.n_epochs):
             for _, (X, y) in enumerate(dataloader):
                 decoder.train()
                 X = X.to(self.config.device)
@@ -260,9 +260,10 @@ class VAERunner():
 
     def test_fid(self, checkpoint_id):
         if checkpoint_id !=0:
-            checkpoint_name = 'checkpoint{}k.pth'.format(checkpoint_id)
+            checkpoint_name = 'checkpoint_{}k.pth'.format(checkpoint_id)
         else:
             checkpoint_name = 'checkpoint.pth'.format(checkpoint_id)
+        print("CHECKPOINT ID {}".format(checkpoint_name))
         states = torch.load(os.path.join(self.args.log, checkpoint_name), map_location=self.config.device)
         decoder = Decoder(self.config).to(self.config.device)
         decoder.eval()
@@ -295,6 +296,7 @@ class VAERunner():
         if not os.path.exists(os.path.join(self.args.log, 'samples', 'raw_images')):
             os.makedirs(os.path.join(self.args.log, 'samples', 'raw_images'))
         logging.info("Images generated. Saving images")
+        
         for i, image in enumerate(all_samples):
             save_image(image, os.path.join(self.args.log, 'samples', 'raw_images', '{}.png'.format(i)))
         logging.info("Generating fid statistics")
@@ -303,7 +305,7 @@ class VAERunner():
         logging.info("Statistics generated.")
             
         fid_number = fid.calculate_fid_given_paths([
-            'run/datasets/celeba140_fid/samples/celeba_test.npz',
-            os.path.join(self.args.log, 'samples', 'celeba_test.npz')]
+            'run/datasets/celeba140_fid/samples/celeba140_test.npz',
+            os.path.join(self.args.log, 'samples', 'celeba140_test.npz')]
             , 50, True, 2048)
         logging.info("FID: {}".format(fid_number))

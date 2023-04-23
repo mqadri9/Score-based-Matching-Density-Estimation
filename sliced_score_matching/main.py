@@ -115,7 +115,7 @@ def main():
         runner = eval(args.runner)(args, config)
         print(args.test_fid)
         if args.test_fid:
-            runner.test_fid(config.checkpoint_id)
+            runner.test_fid(args.checkpoint_id)
         else:
             if not args.test:
                 runner.train()
